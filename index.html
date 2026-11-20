@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лисья нора</title>
+<script>
+  // Страница рассчитана на окно ≈1920×950. На мониторах (от 1024 px) масштабируем её целиком через zoom:
+  // на 2K крупнее, на ноутбуке мельче (но не меньше 80%). Планшет и телефон — без zoom, у них своя раскладка.
+  // vh/vw в стилях заменены на --vh1/--vw1/--vmin1: при zoom браузер иначе увеличил бы и их.
+  (function(){
+    function calc(){
+      var w=innerWidth,h=innerHeight,z=1;
+      if(w>=1024) z=Math.max(.8,Math.min(1.6,Math.min(w/1920,h/950)));
+      window.PZ=z;
+      var r=document.documentElement;
+      r.style.zoom=z===1?'':z;
+      r.style.setProperty('--vh1',(h/z/100)+'px');
+      r.style.setProperty('--vw1',(w/z/100)+'px');
+      r.style.setProperty('--vmin1',(Math.min(w,h)/z/100)+'px');
+    }
+    calc();addEventListener('resize',calc);
+  })();
+</script>
+<style>
+  :root{
+    --vh1:1vh; --vw1:1vw; --vmin1:1vmin;
+    --bg:#0b0f1a; --fg:#f3efe6; --muted:#8a93a8; --fox:#ff7a2f; --fox-dark:#1a0d05;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--fg);font-family:"Segoe UI",system-ui,-apple-system,sans-serif;overflow-x:hidden}
+  .scene{position:relative}
+  .sticky{position:sticky;top:0;height:calc(100*var(--vh1));overflow:hidden}
+  #bar{position:fixed;top:0;left:0;height:3px;width:100%;background:var(--fox);transform-origin:0 50%;transform:scaleX(0);z-index:100}
+
+  /* 01 — зум сквозь окно */
+  .forest{position:absolute;inset:0;background:radial-gradient(ellipse at 60% 25%,#2b3c6b 0%,#141c33 45%,#0b0f1a 80%);transform-origin:50% 60%}
+  .layer{position:absolute;inset:0;width:100%;height:100%;transform-origin:50% 78%}
+  .eyes{animation:blink 4s infinite}
+  @keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+  .plate{position:absolute;inset:0;--r:min(calc(20*var(--vmin1)),170px);
+         background:radial-gradient(circle at 50% 50%,transparent var(--r),var(--fox) calc(var(--r) + 1px));
+         transform-origin:50% 50%;z-index:10}
+  .plate-title{position:absolute;left:0;right:0;bottom:calc(50% + var(--r) + calc(4*var(--vmin1)));text-align:center;
+               font-size:clamp(44px,calc(11*var(--vw1)),150px);font-weight:900;line-height:.88;letter-spacing:-.03em;
+               text-transform:uppercase;color:var(--fox-dark)}
+  .plate-hint{position:absolute;left:0;right:0;top:calc(50% + var(--r) + calc(4*var(--vmin1)));text-align:center;
+              font-size:clamp(14px,calc(1.6*var(--vw1)),18px);color:var(--fox-dark);opacity:.75}
+  .caption{position:absolute;left:0;right:0;top:calc(14*var(--vh1));text-align:center;z-index:5;opacity:0;padding:0 16px}
+  .caption h2{margin:0;font-size:clamp(32px,calc(6*var(--vw1)),76px);font-weight:800;letter-spacing:-.02em}
+  .caption p{margin:10px 0 0;color:var(--muted);font-size:clamp(14px,calc(1.6*var(--vw1)),18px)}
+
+  /* 02 — проявление текста */
+  .reveal{display:flex;align-items:center;justify-content:center;padding:0 16px}
+  .reveal p{max-width:1000px;margin:0;font-size:clamp(26px,calc(4.4*var(--vw1)),60px);font-weight:700;line-height:1.15;letter-spacing:-.02em}
+  .reveal span{opacity:.12;transition:opacity .1s linear}
+  .reveal span.hl{color:var(--fox)}
+
+  /* 03 — горизонтальная лента */
+  .hwrap{display:flex;align-items:center}
+  .track{display:flex;gap:24px;padding:0 calc(8*var(--vw1));will-change:transform}
+  .card{flex:0 0 auto;width:min(calc(78*var(--vw1)),440px);height:min(calc(64*var(--vh1)),520px);border-radius:24px;padding:32px;
+        display:flex;flex-direction:column;justify-content:flex-end;position:relative;overflow:hidden;
+        background:linear-gradient(160deg,#1c2645,#0f1528);border:1px solid rgba(255,255,255,.08)}
+  .card .num{position:absolute;top:18px;right:26px;font-size:120px;font-weight:900;line-height:1;color:rgba(255,255,255,.06)}
+  .card h3{margin:0 0 10px;font-size:clamp(24px,calc(3*var(--vw1)),34px);color:var(--fox)}
+  .card p{margin:0;color:#c9cfdc;font-size:17px;line-height:1.5}
+  .card .art{flex:1;min-height:0;margin-bottom:18px}
+  .card .art svg{width:100%;height:100%;display:block}
+  .tile .fox{position:absolute;right:4%;top:6%;height:88%;width:auto;filter:drop-shadow(0 6px 10px rgba(0,0,0,.25))}
+  .tile:not(.center)>*:not(svg){position:relative;z-index:1}
+  .card.lead{background:var(--fox);color:var(--fox-dark)}
+  .card.lead h3{color:var(--fox-dark);font-size:clamp(32px,calc(4*var(--vw1)),48px)}
+  .card.lead p{color:var(--fox-dark)}
+
+  /* 04 — обратный зум в сетку */
+  .gridwrap{display:flex;align-items:center;justify-content:center}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:min(calc(92*var(--vw1)),calc(110*var(--vh1)))}
+  .tile{aspect-ratio:16/10;border-radius:16px;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;padding:12px 14px;
+        font-weight:700;font-size:clamp(11px,calc(1.4*var(--vw1)),17px)}
+  .tile small{display:block;font-weight:400;opacity:.7;font-size:.8em}
+  .tile.center{z-index:5;padding:0}
+  .tile.center svg{position:absolute;inset:0;width:100%;height:100%}
+  .tile.center .lbl{position:absolute;left:14px;bottom:12px}
+  .gridtitle{position:absolute;top:calc(6*var(--vh1));left:0;right:0;text-align:center;font-size:clamp(24px,calc(4*var(--vw1)),48px);font-weight:800;opacity:0;z-index:6}
+
+  /* 05 — раскрытие кругом */
+  .finale{display:flex;align-items:center;justify-content:center;text-align:center;padding:0 16px}
+  .finale .under{color:var(--muted);font-size:clamp(18px,calc(2.4*var(--vw1)),28px)}
+  .circle{position:absolute;inset:0;background:var(--fox);color:var(--fox-dark);display:flex;flex-direction:column;
+          align-items:center;justify-content:center;clip-path:circle(0% at 50% 50%);padding:0 16px}
+  .circle h2{margin:0;font-size:clamp(48px,calc(10*var(--vw1)),140px);font-weight:900;letter-spacing:-.04em;line-height:.9}
+  .circle p{margin:18px 0 0;font-size:clamp(15px,calc(1.8*var(--vw1)),20px)}
+
+  /* планшет */
+  @media (max-width:1023px){
+    .track{gap:18px}
+  }
+  /* телефон и узкие окна: плитки сетки вертикальные, лиса сверху, подпись снизу */
+  @media (max-width:700px){
+    .track{gap:14px;padding:0 calc(11*var(--vw1))}
+    .card{padding:22px;border-radius:20px;height:min(calc(70*var(--vh1)),520px)}
+    .card .num{font-size:90px;top:12px;right:18px}
+    .card p{font-size:15px;line-height:1.45}
+    .card .art{margin-bottom:12px}
+    .grid{gap:8px;width:calc(94*var(--vw1))}
+    .tile{aspect-ratio:4/5;border-radius:12px;padding:8px;font-size:12px;line-height:1.15}
+    .tile small{font-size:10px}
+    .tile .fox{left:50%;right:auto;top:8%;height:52%;transform:translateX(-50%)}
+    .gridtitle{top:calc(8*var(--vh1));padding:0 16px}
+  }
+  /* очень низкие окна (телефон боком) */
+  @media (max-height:500px){
+    .card{height:calc(80*var(--vh1));flex-direction:row;align-items:flex-end;gap:18px;width:min(calc(70*var(--vw1)),560px)}
+    .card .art{height:100%;flex:0 0 42%;margin:0}
+    .card .txt{flex:1}
+    .card p{font-size:14px}
+    .card.lead{flex-direction:column}
+    .grid{width:calc(100*var(--vh1))}
+    .tile small{display:none}
+    .gridtitle{top:calc(3*var(--vh1));font-size:20px}
+    .plate{--r:calc(16*var(--vmin1))}
+    .plate-title{font-size:calc(10*var(--vh1))}
+  }
+  @media (prefers-reduced-motion:reduce){.eyes{animation:none}}
+</style>
+</head>
+<body>
+<div id="bar"></div>
+
+<!-- 01 -->
+<section class="scene" id="s1" style="height:calc(750*var(--vh1))">
+  <div class="sticky">
+    <div class="forest" id="forest"></div>
+    <div class="caption" id="cap">
+      <h2>Здесь живёт лиса</h2>
+      <p>видишь глаза между ёлками?</p>
+    </div>
+    <div class="plate" id="plate">
+      <div class="plate-title">Загляни<br>в нору</div>    </div>
+  </div>
+</section>
+
+<!-- 02 -->
+<section class="scene" id="s2" style="height:calc(320*var(--vh1))">
+  <div class="sticky reveal">
+    <p id="revealText">Лисы не любят рыть нору с нуля. Отличный вариант — занять старую барсучью: сухо, просторно и несколько запасных выходов. Бывает, что лиса и барсук живут в одной системе ходов по соседству.</p>
+  </div>
+</section>
+
+<!-- 03 -->
+<section class="scene" id="s3" style="height:calc(450*var(--vh1))">
+  <div class="sticky hwrap">
+    <div class="track" id="track">
+      <div class="card lead"><h3>Шесть фактов о лисах</h3></div>
+      <div class="card"><div class="num">1</div><h3>Мышкование</h3><p>Лиса слышит мышь под снегом, подпрыгивает и ныряет в сугроб головой вниз.</p></div>
+      <div class="card"><div class="num">2</div><h3>Компас в голове</h3><p>Чаще всего лисы прыгают на добычу в северо-восточном направлении. Учёные считают, что они ориентируются по магнитному полю Земли.</p></div>
+      <div class="card"><div class="num">3</div><h3>Фенек</h3><p>Самая маленькая лиса: весит около килограмма, а уши — до 15 сантиметров. Через них она сбрасывает лишнее тепло.</p></div>
+      <div class="card"><div class="num">4</div><h3>Хвост-одеяло</h3><p>Зимой лиса сворачивается клубком и укрывает пушистым хвостом нос и лапы.</p></div>
+      <div class="card"><div class="num">5</div><h3>Кошачьи глаза</h3><p>Зрачки у лисы вертикальные, как у кошки: удобно охотиться в сумерках.</p></div>
+      <div class="card"><div class="num">6</div><h3>Vulpes</h3><p>Так по-латыни называется род лисиц. В него входят около дюжины видов.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 -->
+<section class="scene" id="s4" style="height:calc(420*var(--vh1))">
+  <div class="sticky gridwrap">
+    <div class="gridtitle" id="gridTitle">Девять лис мира</div>
+    <div class="grid" id="grid">
+      <div class="tile" style="background:linear-gradient(135deg,#ff7a2f,#b8431b)">Обыкновенная<small>Евразия, Америка</small></div>
+      <div class="tile" style="background:linear-gradient(135deg,#f2c37a,#c78a3c);color:#2b1a05">Фенек<small>Сахара</small></div>
+      <div class="tile" style="background:linear-gradient(135deg,#e9eef5,#9fb0c8);color:#152033">Песец<small>Арктика</small></div>
+      <div class="tile" style="background:linear-gradient(135deg,#c9a06b,#7d5a32)">Корсак<small>степи Азии</small></div>
+      <div class="tile center" id="centerTile">
+        <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+          <defs><linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9a52"/><stop offset=".55" stop-color="#d4507a"/><stop offset="1" stop-color="#3b2466"/></linearGradient></defs>
+          <rect width="1600" height="1000" fill="url(#sk)"/>
+          <circle cx="800" cy="560" r="230" fill="#ffe3b0" opacity=".9"/>
+          <path d="M0 700 L200 600 L380 680 L560 560 L760 690 L940 590 L1140 680 L1320 580 L1600 690 L1600 1000 L0 1000Z" fill="#2a1a4a"/>
+          <path d="M0 820 L260 740 L520 810 L800 730 L1080 820 L1340 750 L1600 820 L1600 1000 L0 1000Z" fill="#160d2b"/>
+        </svg>
+        <div class="lbl">Закат<small>родина всех лис</small></div>
+      </div>
+      <div class="tile" style="background:linear-gradient(135deg,#8f8b84,#4c4a47)">Афганская<small>горы Средней Азии</small></div>
+      <div class="tile" style="background:linear-gradient(135deg,#d9b48a,#8a6a4a)">Тибетская<small>Тибетское нагорье</small></div>
+      <div class="tile" style="background:linear-gradient(135deg,#a3b0a0,#5d6b5a)">Американская<small>прерии Северной Америки</small></div>
+      <div class="tile" style="background:linear-gradient(135deg,#e6a25a,#9b5a25)">Бенгальская<small>Индия, Непал</small></div>
+    </div>
+  </div>
+</section>
+
+<!-- 05 -->
+<section class="scene" id="s5" style="height:calc(260*var(--vh1))">
+  <div class="sticky finale">
+    <div class="under">ещё чуть-чуть…</div>
+    <div class="circle" id="circle">
+      <h2>Вот и всё</h2>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ---------- генерация ночного леса ---------- */
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const R = rng(7);
+function fir(x,y,h,w){
+  const p=[[x,y-h],[x+w*.24,y-h*.62],[x+w*.13,y-h*.62],[x+w*.38,y-h*.3],[x+w*.24,y-h*.3],[x+w*.5,y],
+           [x-w*.5,y],[x-w*.24,y-h*.3],[x-w*.38,y-h*.3],[x-w*.13,y-h*.62],[x-w*.24,y-h*.62]];
+  return p.map(q=>q[0].toFixed(1)+','+q[1].toFixed(1)).join(' ');
+}
+function treeLayer({count,yBase,hMin,hMax,color,gap}){
+  let s='';
+  for(let i=0;i<count;i++){
+    const x=-150+R()*1900;
+    if(Math.abs(x-800)<gap){continue}
+    const h=hMin+R()*(hMax-hMin);
+    s+=`<polygon points="${fir(x,yBase+R()*20,h,h*.42)}" fill="${color}"/>`;
+  }
+  return s+`<rect x="-300" y="${yBase+10}" width="2200" height="${1100-yBase}" fill="${color}"/>`;
+}
+function svg(inner,align){return `<svg class="layer" viewBox="0 0 1600 900" preserveAspectRatio="${align}">${inner}</svg>`}
+
+let stars='';
+for(let i=0;i<140;i++){stars+=`<circle cx="${R()*1600}" cy="${R()*560}" r="${(R()*1.6+.3).toFixed(2)}" fill="#fff" opacity="${(R()*.7+.2).toFixed(2)}"/>`}
+const sky = svg(`<defs><radialGradient id="glow"><stop offset="0" stop-color="#fff3d6" stop-opacity=".45"/><stop offset="1" stop-color="#fff3d6" stop-opacity="0"/></radialGradient></defs>
+  ${stars}<circle cx="1230" cy="160" r="170" fill="url(#glow)"/><circle cx="1230" cy="160" r="58" fill="#fff1d0"/>`,'xMidYMid slice');
+
+let mpts='-100,900 ';
+for(let x=-100;x<=1700;x+=70){mpts+=`${x},${(600-R()*150).toFixed(0)} `}
+mpts+='1700,900';
+const mountains = svg(`<polygon points="${mpts}" fill="#1d2b4f"/><rect x="-300" y="640" width="2200" height="400" fill="#1d2b4f"/>
+  <rect x="-300" y="600" width="2200" height="120" fill="#8ea6e0" opacity=".06"/>`,'xMidYMax slice');
+
+const l2 = svg(treeLayer({count:46,yBase:720,hMin:110,hMax:210,color:'#142039',gap:46}) +
+  `<rect x="-300" y="690" width="2200" height="60" fill="#8ea6e0" opacity=".05"/>
+   <g class="eyes" id="eyes" style="transform-origin:800px 700px;opacity:0">
+     <ellipse cx="788" cy="700" rx="7" ry="4" fill="#ffd27a"/><ellipse cx="812" cy="700" rx="7" ry="4" fill="#ffd27a"/>
+     <ellipse cx="788" cy="700" rx="16" ry="10" fill="#ffd27a" opacity=".18"/><ellipse cx="812" cy="700" rx="16" ry="10" fill="#ffd27a" opacity=".18"/>
+   </g>`,'xMidYMax slice');
+const l3 = svg(treeLayer({count:24,yBase:790,hMin:220,hMax:380,color:'#0e172b',gap:110}),'xMidYMax slice');
+const l4 = svg(treeLayer({count:14,yBase:860,hMin:380,hMax:600,color:'#091020',gap:230}),'xMidYMax slice');
+const l5 = svg(treeLayer({count:8,yBase:930,hMin:700,hMax:1000,color:'#04070f',gap:390}),'xMidYMax slice');
+
+const forest=document.getElementById('forest');
+forest.innerHTML = sky+mountains+l2+l3+l4+l5;
+const layers=[...forest.querySelectorAll('.layer')];
+const depth=[0.05,0.22,0.75,1.6,3.2,6.5];   // насколько быстро «приближается» каждый слой
+const eyes=document.getElementById('eyes');
+
+/* ---------- текст по словам ---------- */
+const rt=document.getElementById('revealText');
+const hlWords=['барсучью:','лиса','барсук'];
+rt.innerHTML=rt.textContent.split(' ').map(w=>`<span${hlWords.includes(w)?' class="hl"':''}>${w}</span>`).join(' ');
+const words=[...rt.querySelectorAll('span')];
+
+/* ---------- лисья голова: один рисунок, разные виды ---------- */
+function foxHead(o={}){
+  const {c='#ff7a2f',cheek='#fff4e8',inner='#3a1d0c',eye='#1a0d05',earH=1,earW=1,w=1,closed=false}=o;
+  const top=80,L=100-70*w,ew=45*earW,th=top-62*earH;
+  const P=pts=>pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+  const earL=[[L,top],[L+ew,top],[L+6-8*(earW-1),th]];
+  const earR=earL.map(([x,y])=>[200-x,y]);
+  const shrink=pts=>{const cx=(pts[0][0]+pts[1][0]+pts[2][0])/3,cy=(pts[0][1]+pts[1][1]+pts[2][1])/3;
+    return pts.map(([x,y])=>[cx+(x-cx)*.55,cy+(y-cy)*.55+6])};
+  const ci=100-30*w;
+  const eyes=[[100-28*w,104,20],[100+28*w,104,-20]].map(([x,y,r])=>closed
+    ?`<path d="M${x-8} ${y} q8 6 16 0" stroke="${eye}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`
+    :`<ellipse cx="${x}" cy="${y}" rx="6.5" ry="4.5" fill="${eye}" transform="rotate(${r} ${x} ${y})"/>`).join('');
+  return `<svg class="fox" viewBox="0 -45 200 225" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="${P(earL)}" fill="${c}"/><polygon points="${P(earR)}" fill="${c}"/>
+    <polygon points="${P(shrink(earL))}" fill="${inner}"/><polygon points="${P(shrink(earR))}" fill="${inner}"/>
+    <polygon points="${P([[L,top],[200-L,top],[100,175]])}" fill="${c}"/>
+    <polygon points="${P([[L,top],[ci,112],[100,175]])}" fill="${cheek}"/>
+    <polygon points="${P([[200-L,top],[200-ci,112],[100,175]])}" fill="${cheek}"/>
+    ${eyes}<polygon points="92,164 108,164 100,176" fill="#1a0d05"/></svg>`;
+}
+const species=[
+  {c:'#ff7a2f',cheek:'#fff4e8',inner:'#3a1d0c'},                                  // обыкновенная
+  {c:'#f6d29b',cheek:'#fff8ec',inner:'#e9a4a0',earH:1.75,earW:1.25},                 // фенек
+  {c:'#f7f9fc',cheek:'#dfe6f0',inner:'#b9c4d6',earH:.55,earW:.9,eye:'#2b3a55'},      // песец
+  {c:'#c99a60',cheek:'#f3e6cf',inner:'#5a3e1f',earH:1.15},                           // корсак
+  null,
+  {c:'#8f8a82',cheek:'#e4e0d8',inner:'#3b3833',earH:1.35,earW:1.1},                  // афганская
+  {c:'#d9a462',cheek:'#a8a39b',inner:'#6b4a24',earH:.6,earW:.8,w:1.28},              // тибетская: квадратная морда
+  {c:'#cdb48d',cheek:'#f6efe2',inner:'#6e5638',earH:1.45,earW:1.15},                 // американская
+  {c:'#d9843f',cheek:'#f4e2c8',inner:'#4a2810',earH:1.2}                             // бенгальская
+];
+document.querySelectorAll('#grid .tile').forEach((t,i)=>{if(species[i])t.insertAdjacentHTML('beforeend',foxHead(species[i]))});
+
+/* ---------- иллюстрации к фактам ---------- */
+const V='viewBox="0 0 300 200" preserveAspectRatio="xMidYMid meet"';
+const nested=(svgStr,x,y,wd,ht,extra='')=>svgStr.replace('<svg class="fox"',`<svg x="${x}" y="${y}" width="${wd}" height="${ht}" ${extra}`);
+let flakes='';for(let i=0;i<26;i++){flakes+=`<circle cx="${(R()*300).toFixed(0)}" cy="${(R()*150).toFixed(0)}" r="${(R()*2+1).toFixed(1)}" fill="#fff" opacity="${(R()*.6+.3).toFixed(2)}"/>`}
+const arts=[
+  // 1. мышкование: лиса ушла головой в сугроб
+  `<svg ${V}>${flakes}
+    <path d="M150 128 Q205 95 222 42" stroke="#ff7a2f" stroke-width="24" stroke-linecap="round" fill="none"/>
+    <path d="M218 58 Q221 50 222 42" stroke="#fff4e8" stroke-width="24" stroke-linecap="round" fill="none"/>
+    <rect x="128" y="88" width="9" height="46" rx="4" fill="#1a0d05"/><rect x="156" y="84" width="9" height="50" rx="4" fill="#1a0d05"/>
+    <ellipse cx="148" cy="140" rx="34" ry="24" fill="#ff7a2f"/>
+    <path d="M0 200 L0 182 Q150 128 300 182 L300 200Z" fill="#e8eef9"/>
+    <ellipse cx="150" cy="162" rx="40" ry="7" fill="#c8d3e8"/>
+    <circle cx="96" cy="146" r="5" fill="#e8eef9"/><circle cx="206" cy="142" r="4" fill="#e8eef9"/><circle cx="114" cy="130" r="3" fill="#e8eef9"/></svg>`,
+  // 2. компас: стрелка на северо-восток
+  `<svg ${V}>
+    <circle cx="150" cy="100" r="78" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="2"/>
+    <circle cx="150" cy="100" r="64" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.25)" stroke-width="2"/>
+    ${Array.from({length:16},(_,i)=>`<line x1="150" y1="${i%4?40:34}" x2="150" y2="44" stroke="rgba(255,255,255,.4)" stroke-width="2" transform="rotate(${i*22.5} 150 100)"/>`).join('')}
+    <g font-size="15" font-weight="700" fill="#8a93a8" text-anchor="middle" font-family="Segoe UI,sans-serif">
+      <text x="150" y="16">С</text><text x="238" y="105">В</text><text x="150" y="196">Ю</text><text x="62" y="105">З</text></g>
+    <g transform="rotate(45 150 100)"><polygon points="150,46 161,100 139,100" fill="#ff7a2f"/><polygon points="150,154 161,100 139,100" fill="#4b5675"/></g>
+    <circle cx="150" cy="100" r="6" fill="#f3efe6"/>
+    <text x="214" y="46" font-size="13" fill="#ff7a2f" font-family="Segoe UI,sans-serif" font-weight="700">прыжок</text></svg>`,
+  // 3. фенек в пустыне
+  `<svg ${V}><circle cx="240" cy="48" r="22" fill="#ffd27a" opacity=".85"/>
+    <path d="M0 170 Q80 140 160 165 T300 160 L300 200 L0 200Z" fill="#c78a3c" opacity=".5"/>
+    ${nested(foxHead(species[1]),85,-6,130,150)}
+    <path d="M0 185 Q100 160 200 182 T300 178 L300 200 L0 200Z" fill="#c78a3c"/></svg>`,
+  // 4. спит, укрывшись хвостом
+  `<svg ${V}>
+    <ellipse cx="160" cy="128" rx="78" ry="46" fill="#ff7a2f"/>
+    ${nested(foxHead({closed:true}),62,52,96,106,'')}
+    <path d="M236 122 Q250 182 160 178 Q108 175 92 152" stroke="#e8662a" stroke-width="32" stroke-linecap="round" fill="none"/>
+    <path d="M110 166 Q98 162 92 152" stroke="#fff4e8" stroke-width="30" stroke-linecap="round" fill="none"/>
+    <g fill="#8a93a8" font-family="Segoe UI,sans-serif" font-weight="700"><text x="214" y="70" font-size="22">z</text><text x="232" y="50" font-size="16">z</text><text x="246" y="34" font-size="12">z</text></g></svg>`,
+  // 5. глаз с вертикальным зрачком
+  `<svg ${V}><defs><radialGradient id="iris" cx=".5" cy=".5" r=".6"><stop offset="0" stop-color="#ffd36b"/><stop offset=".7" stop-color="#e8962a"/><stop offset="1" stop-color="#8a4510"/></radialGradient></defs>
+    <path d="M18 100 Q150 -14 282 100 Q150 214 18 100Z" fill="#ff7a2f"/>
+    <path d="M44 100 Q150 12 256 100 Q150 188 44 100Z" fill="url(#iris)" stroke="#1a0d05" stroke-width="6"/>
+    <path d="M150 42 Q166 100 150 158 Q134 100 150 42Z" fill="#120a04"/>
+    <circle cx="172" cy="72" r="8" fill="#fff" opacity=".9"/><circle cx="184" cy="88" r="3.5" fill="#fff" opacity=".7"/></svg>`,
+  // 6. Vulpes: лиса и луна
+  `<svg ${V}><circle cx="150" cy="96" r="88" fill="#fff1d0" opacity=".12"/><circle cx="150" cy="96" r="64" fill="#fff1d0" opacity=".14"/>
+    ${nested(foxHead(),90,8,120,140)}
+    <text x="150" y="194" text-anchor="middle" font-size="16" font-style="italic" fill="#8a93a8" font-family="Georgia,serif">Vulpes vulpes</text></svg>`
+];
+[...document.querySelectorAll('#track .card:not(.lead)')].forEach((cd,i)=>{
+  const txt=document.createElement('div');txt.className='txt';
+  txt.append(cd.querySelector('h3'),cd.querySelector('p'));
+  cd.append(txt);
+  cd.insertAdjacentHTML('afterbegin',`<div class="art">${arts[i]}</div>`);
+});
+
+/* ---------- утилиты ---------- */
+const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
+const range=(p,a,b)=>clamp((p-a)/(b-a));
+const easeInOut=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const easeOut=t=>1-Math.pow(1-t,3);
+function prog(el){const r=el.getBoundingClientRect();return clamp(-r.top/(r.height-innerHeight))}
+
+const $=id=>document.getElementById(id);
+const s1=$('s1'),s2=$('s2'),s3=$('s3'),s4=$('s4'),s5=$('s5');
+const plate=$('plate'),cap=$('cap'),track=$('track'),cards=[...track.children];
+const tiles=[...$('grid').children],center=$('centerTile'),centerLbl=center.querySelector('.lbl'),gridTitle=$('gridTitle'),circle=$('circle'),bar=$('bar');
+
+function update(){
+  // W,H — экран в пикселях (для прогресса и rect); Wc,Hc — то же в CSS-пикселях страницы с учётом zoom
+  const H=innerHeight,W=innerWidth,Z=window.PZ||1,Wc=W/Z,Hc=H/Z;
+  bar.style.transform=`scaleX(${scrollY/(document.documentElement.scrollHeight-H)})`;
+
+  /* 01 */
+  let p=prog(s1);
+  const a=range(p,0,.34);
+  plate.style.transform=`scale(${1+Math.pow(a,2.6)*38})`;
+  plate.style.opacity=1-range(p,.28,.35);
+  plate.style.visibility=p>.36?'hidden':'visible';
+  forest.style.transform=`scale(${1.3-.3*easeOut(a)})`;
+  const b=easeInOut(range(p,.38,.96));
+  layers.forEach((l,i)=>{
+    const s=1+b*depth[i];
+    l.style.transform=`scale(${s})`;
+    l.style.opacity=i>=3?1-clamp((s-1.9)/1.4):1;
+  });
+  eyes.style.opacity=range(p,.82,.94);
+  const c=range(p,.86,.97);
+  cap.style.opacity=c; cap.style.transform=`translateY(${(1-c)*30}px)`;
+
+  /* 02 */
+  p=prog(s2);
+  const n=words.length;
+  words.forEach((w,i)=>{w.style.opacity=.12+.88*clamp(p*1.15*n-i)});
+
+  /* 03 */
+  p=prog(s3);
+  const dist=Math.max(0,track.scrollWidth-Wc);
+  track.style.transform=`translateX(${-easeInOut(p)*dist}px)`;
+  cards.forEach(cd=>{
+    const r=cd.getBoundingClientRect();
+    const d=clamp(Math.abs(r.left+r.width/2-W/2)/W);
+    cd.style.transform=`scale(${1-d*.14}) rotate(${(r.left+r.width/2-W/2)/W*-4}deg)`;
+    cd.style.opacity=1-d*.45;
+  });
+
+  /* 04 */
+  p=prog(s4);
+  const tw=center.offsetWidth,th=center.offsetHeight;
+  const s0=Math.max(Wc/tw,Hc/th)*1.02;
+  const z=easeInOut(range(p,.05,.7));
+  const sc=s0+(1-s0)*z;
+  center.style.transform=`scale(${sc})`;
+  center.style.borderRadius=`${16/sc}px`;
+  centerLbl.style.opacity=clamp(1.6-sc);   // подпись появляется, только когда плитка почти встала в сетку
+  const q=easeOut(range(p,.3,.75));
+  const cr=center.getBoundingClientRect();
+  tiles.forEach(t=>{
+    if(t===center)return;
+    const dx=t.offsetLeft-center.offsetLeft, dy=t.offsetTop-center.offsetTop;
+    t.style.opacity=q;
+    t.style.transform=`translate(${dx*(1-q)*.5}px,${dy*(1-q)*.5}px) scale(${.7+.3*q})`;
+  });
+  const g=range(p,.72,.85);
+  gridTitle.style.opacity=g; gridTitle.style.transform=`translateY(${(1-g)*-20}px)`;
+
+  /* 05 */
+  p=prog(s5);
+  circle.style.clipPath=`circle(${easeInOut(range(p,.1,.85))*75}% at 50% 50%)`;
+}
+
+let ticking=false;
+function onScroll(){if(!ticking){ticking=true;requestAnimationFrame(()=>{update();ticking=false})}}
+addEventListener('scroll',onScroll,{passive:true});
+addEventListener('resize',onScroll);
+update();
+</script>
+</body>
+</html>
